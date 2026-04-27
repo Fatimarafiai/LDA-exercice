@@ -80,7 +80,7 @@ def plot_heatmap_improved(lda, doc_term_matrix):
 # 💫 FONCTION 3: Word Clouds Améliorés (Séparé)
 # ============================================
 def plot_word_clouds_improved(lda, vectorizer, num_words=15):
-    """Crée UN graphique séparé pour chaque topic avec word cloud"""
+    """Crée UN graphique séparé pour chaque topic avec word cloud LISIBLE"""
     feature_names = vectorizer.get_feature_names_out()
     
     for topic_idx, topic in enumerate(lda.components_):
@@ -88,29 +88,35 @@ def plot_word_clouds_improved(lda, vectorizer, num_words=15):
         top_words = [feature_names[i] for i in top_words_idx]
         top_weights = topic[top_words_idx]
         
-        # 🎨 Figure grande
-        fig, ax = plt.subplots(figsize=(16, 10))
+        # 🎨 Figure ÉNORME
+        fig, ax = plt.subplots(figsize=(18, 12))
         
         # 📊 Normaliser les poids pour la taille
-        sizes = (top_weights - top_weights.min()) / (top_weights.max() - top_weights.min()) * 400 + 100
+        sizes = (top_weights - top_weights.min()) / (top_weights.max() - top_weights.min()) * 600 + 200
         colors_scatter = plt.cm.Spectral(np.linspace(0, 1, len(top_words)))
         
-        # 💫 Scatter plot avec bubble
+        # 💫 Scatter plot avec bubble ÉNORME
         scatter = ax.scatter(range(len(top_words)), top_weights, s=sizes, 
-                            alpha=0.6, c=colors_scatter, edgecolors='black', linewidth=2)
+                            alpha=0.7, c=colors_scatter, edgecolors='black', linewidth=3)
         
-        # 📝 Texte centré sur les bulles
+        # 📝 Texte NOIR (changé de white à black) - MAINTENANT LISIBLE !
         for i, word in enumerate(top_words):
             ax.text(i, top_weights[i], word, ha='center', va='center', 
-                   fontsize=12, fontweight='bold', color='white')
+                   fontsize=18, fontweight='bold', color='black',  # ✅ NOIR au lieu de blanc
+                   bbox=dict(boxstyle='round,pad=0.5', 
+                            facecolor='white', 
+                            edgecolor='black', 
+                            linewidth=2,
+                            alpha=0.8))  # ✅ Fond blanc pour contraste
         
         # 🔧 Configuration
         ax.set_xticks([])
-        ax.set_ylabel('Weight', fontsize=14, fontweight='bold')
+        ax.set_ylabel('Weight', fontsize=16, fontweight='bold')
         ax.set_title(f'Topic #{topic_idx + 1} - Word Cloud (Top {num_words})', 
-                    fontsize=16, fontweight='bold', pad=20)
-        ax.grid(axis='y', alpha=0.3, linestyle='--')
+                    fontsize=18, fontweight='bold', pad=20)
+        ax.grid(axis='y', alpha=0.3, linestyle='--', linewidth=1.5)
         ax.set_axisbelow(True)
+        ax.set_ylim(top_weights.min() - 1, top_weights.max() + 2)
         
         plt.tight_layout()
         plt.savefig(f'output/topic_{topic_idx + 1}_word_cloud.png', dpi=300, bbox_inches='tight')
