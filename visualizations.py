@@ -6,91 +6,167 @@ from sklearn.decomposition import LatentDirichletAllocation
 from data_loader import load_documents
 from config import LDA_CONFIG
 
-def plot_topics(lda, vectorizer, num_words=10):
-    """Affiche les top words de chaque topic"""
+# ============================================
+# 📊 FONCTION 1: Top Words - PAR TOPIC (Séparé)
+# ============================================
+def plot_top_words_by_topic(lda, vectorizer, num_words=12):
+    """Crée UN graphique séparé pour chaque topic"""
     feature_names = vectorizer.get_feature_names_out()
-    
-    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-    axes = axes.ravel()
     
     for topic_idx, topic in enumerate(lda.components_):
         top_words_idx = topic.argsort()[-num_words:][::-1]
         top_words = [feature_names[i] for i in top_words_idx]
         top_weights = topic[top_words_idx]
         
-        axes[topic_idx].barh(range(len(top_words)), top_weights, color='steelblue')
-        axes[topic_idx].set_yticks(range(len(top_words)))
-        axes[topic_idx].set_yticklabels(top_words)
-        axes[topic_idx].set_xlabel('Weight')
-        axes[topic_idx].set_title(f'Topic #{topic_idx + 1}')
-        axes[topic_idx].invert_yaxis()
-    
-    plt.suptitle('Top Words by Topic', fontsize=16, fontweight='bold')
-    return fig
+        # 🎨 Figure grande et claire
+        fig, ax = plt.subplots(figsize=(14, 8))
+        
+        # 📊 Barh avec couleurs dégradées
+        colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(top_words)))
+        ax.barh(range(len(top_words)), top_weights, color=colors, edgecolor='black', linewidth=1.5)
+        
+        # 📝 Configuration de l'axe
+        ax.set_yticks(range(len(top_words)))
+        ax.set_yticklabels(top_words, fontsize=13, fontweight='bold')
+        ax.set_xlabel('Weight', fontsize=14, fontweight='bold')
+        ax.set_title(f'Topic #{topic_idx + 1} - Top {num_words} Words', 
+                    fontsize=16, fontweight='bold', pad=20)
+        ax.invert_yaxis()
+        
+        # 🎯 Ajouter les valeurs sur les barres
+        for i, (word, weight) in enumerate(zip(top_words, top_weights)):
+            ax.text(weight + 0.1, i, f'{weight:.2f}', 
+                   va='center', fontsize=11, fontweight='bold')
+        
+        # 🔲 Grid pour meilleure lisibilité
+        ax.grid(axis='x', alpha=0.3, linestyle='--')
+        ax.set_axisbelow(True)
+        
+        plt.tight_layout()
+        plt.savefig(f'output/topic_{topic_idx + 1}_top_words.png', dpi=300, bbox_inches='tight')
+        print(f"✅ Saved: topic_{topic_idx + 1}_top_words.png")
+        plt.close()
 
-def plot_heatmap(lda, doc_term_matrix):
-    """Affiche une heatmap de la distribution document-topic"""
+# ============================================
+# 🔥 FONCTION 2: Heatmap Améliorée
+# ============================================
+def plot_heatmap_improved(lda, doc_term_matrix):
+    """Heatmap bien formatée et lisible"""
     doc_topic_dist = lda.transform(doc_term_matrix)
     
-    fig, ax = plt.subplots(figsize=(12, 8))
-    sns.heatmap(doc_topic_dist, cmap='YlOrRd', cbar=True, ax=ax)
-    ax.set_xlabel('Topics')
-    ax.set_ylabel('Documents')
-    ax.set_title('Document-Topic Distribution Heatmap')
+    fig, ax = plt.subplots(figsize=(14, 10))
     
-    return fig
+    # 🎨 Heatmap avec meilleure colormap
+    sns.heatmap(doc_topic_dist, cmap='RdYlBu_r', cbar=True, ax=ax,
+                cbar_kws={'label': 'Topic Probability'}, 
+                vmin=0, vmax=1, linewidths=0.5)
+    
+    # 📝 Labels et titres
+    ax.set_xlabel('Topics', fontsize=14, fontweight='bold')
+    ax.set_ylabel('Documents', fontsize=14, fontweight='bold')
+    ax.set_title('Document-Topic Distribution Heatmap', 
+                fontsize=16, fontweight='bold', pad=20)
+    
+    # 📊 Améliorations
+    ax.set_xticklabels([f'Topic {i+1}' for i in range(lda.n_components)], 
+                       fontsize=12, fontweight='bold')
+    
+    plt.tight_layout()
+    plt.savefig('output/document_topic_heatmap.png', dpi=300, bbox_inches='tight')
+    print("✅ Saved: document_topic_heatmap.png")
+    plt.close()
 
-def plot_word_clouds(lda, vectorizer, num_words=15):
-    """Affiche les mots principaux pour chaque topic"""
+# ============================================
+# 💫 FONCTION 3: Word Clouds Améliorés (Séparé)
+# ============================================
+def plot_word_clouds_improved(lda, vectorizer, num_words=15):
+    """Crée UN graphique séparé pour chaque topic avec word cloud"""
     feature_names = vectorizer.get_feature_names_out()
-    
-    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-    axes = axes.ravel()
     
     for topic_idx, topic in enumerate(lda.components_):
         top_words_idx = topic.argsort()[-num_words:][::-1]
         top_words = [feature_names[i] for i in top_words_idx]
         top_weights = topic[top_words_idx]
         
-        # Normaliser les poids pour la taille
-        sizes = (top_weights - top_weights.min()) / (top_weights.max() - top_weights.min()) * 100 + 20
+        # 🎨 Figure grande
+        fig, ax = plt.subplots(figsize=(16, 10))
         
-        axes[topic_idx].scatter(range(len(top_words)), top_weights, s=sizes, alpha=0.6, color='coral')
+        # 📊 Normaliser les poids pour la taille
+        sizes = (top_weights - top_weights.min()) / (top_weights.max() - top_weights.min()) * 400 + 100
+        colors_scatter = plt.cm.Spectral(np.linspace(0, 1, len(top_words)))
+        
+        # 💫 Scatter plot avec bubble
+        scatter = ax.scatter(range(len(top_words)), top_weights, s=sizes, 
+                            alpha=0.6, c=colors_scatter, edgecolors='black', linewidth=2)
+        
+        # 📝 Texte centré sur les bulles
         for i, word in enumerate(top_words):
-            axes[topic_idx].text(i, top_weights[i], word, ha='center', va='center', fontweight='bold')
+            ax.text(i, top_weights[i], word, ha='center', va='center', 
+                   fontsize=12, fontweight='bold', color='white')
         
-        axes[topic_idx].set_xticks([])
-        axes[topic_idx].set_ylabel('Weight')
-        axes[topic_idx].set_title(f'Topic #{topic_idx + 1} Words')
-    
-    plt.suptitle('Word Clouds by Topic', fontsize=16, fontweight='bold')
-    return fig
+        # 🔧 Configuration
+        ax.set_xticks([])
+        ax.set_ylabel('Weight', fontsize=14, fontweight='bold')
+        ax.set_title(f'Topic #{topic_idx + 1} - Word Cloud (Top {num_words})', 
+                    fontsize=16, fontweight='bold', pad=20)
+        ax.grid(axis='y', alpha=0.3, linestyle='--')
+        ax.set_axisbelow(True)
+        
+        plt.tight_layout()
+        plt.savefig(f'output/topic_{topic_idx + 1}_word_cloud.png', dpi=300, bbox_inches='tight')
+        print(f"✅ Saved: topic_{topic_idx + 1}_word_cloud.png")
+        plt.close()
 
-def plot_topic_distribution(lda, doc_term_matrix):
-    """Affiche la distribution des topics"""
+# ============================================
+# 🥧 FONCTION 4: Topic Distribution
+# ============================================
+def plot_topic_distribution_improved(lda, doc_term_matrix):
+    """Camembert amélioré"""
     doc_topic_dist = lda.transform(doc_term_matrix)
     mean_dist = np.mean(doc_topic_dist, axis=0)
     
-    fig, ax = plt.subplots(figsize=(10, 6))
-    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A']
-    ax.pie(mean_dist, labels=[f'Topic {i+1}' for i in range(len(mean_dist))], 
-           autopct='%1.1f%%', colors=colors, startangle=90)
-    ax.set_title('Average Topic Distribution', fontsize=14, fontweight='bold')
+    fig, ax = plt.subplots(figsize=(12, 8))
     
-    return fig
+    # 🎨 Couleurs attrayantes
+    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#96CEB4', '#FFEAA7']
+    
+    # 🥧 Pie chart
+    wedges, texts, autotexts = ax.pie(mean_dist, 
+                                        labels=[f'Topic {i+1}' for i in range(len(mean_dist))],
+                                        autopct='%1.1f%%',
+                                        colors=colors[:len(mean_dist)],
+                                        startangle=90,
+                                        explode=[0.05]*len(mean_dist),
+                                        textprops={'fontsize': 13, 'fontweight': 'bold'})
+    
+    # 📝 Amélioration des pourcentages
+    for autotext in autotexts:
+        autotext.set_color('white')
+        autotext.set_fontsize(12)
+        autotext.set_fontweight('bold')
+    
+    ax.set_title('Average Topic Distribution', 
+                fontsize=16, fontweight='bold', pad=20)
+    
+    plt.tight_layout()
+    plt.savefig('output/topic_distribution.png', dpi=300, bbox_inches='tight')
+    print("✅ Saved: topic_distribution.png")
+    plt.close()
 
-# Main execution
+# ============================================
+# 🚀 MAIN - Exécution
+# ============================================
 if __name__ == "__main__":
     print("="*60)
-    print("📊 LDA Visualizations")
+    print("📊 LDA Visualizations - IMPROVED VERSION")
     print("="*60)
     
-    # Charger les données
+    # [1] Charger les données
     print("\n[1/4] Loading documents...")
     documents = load_documents('data/sample_documents.txt')
     print(f"✅ {len(documents)} documents loaded")
     
-    # Vectorizer
+    # [2] Vectorizer
     print("\n[2/4] Vectorizing documents...")
     vectorizer = CountVectorizer(
         max_df=LDA_CONFIG['max_df'],
@@ -100,7 +176,7 @@ if __name__ == "__main__":
     doc_term_matrix = vectorizer.fit_transform(documents)
     print(f"✅ Vocabulary size: {len(vectorizer.get_feature_names_out())} words")
     
-    # Entraîner LDA
+    # [3] Entraîner LDA
     print("\n[3/4] Training LDA model...")
     lda = LatentDirichletAllocation(
         n_components=LDA_CONFIG['n_topics'],
@@ -112,34 +188,14 @@ if __name__ == "__main__":
     lda.fit(doc_term_matrix)
     print(f"✅ Model trained with {LDA_CONFIG['n_topics']} topics")
     
-    # Créer les visualisations
+    # [4] Créer les visualisations
     print("\n[4/4] Creating visualizations...")
     
-    # 1. Top words par topic
-    fig1 = plot_topics(lda, vectorizer, num_words=10)
-    plt.savefig('output/top_words_by_topic.png', dpi=300, bbox_inches='tight')
-    print("✅ Saved: top_words_by_topic.png")
-    
-    # 2. Heatmap
-    fig2 = plot_heatmap(lda, doc_term_matrix)
-    plt.savefig('output/document_topic_heatmap.png', dpi=300, bbox_inches='tight')
-    print("✅ Saved: document_topic_heatmap.png")
-    
-    # 3. Word clouds
-    fig3 = plot_word_clouds(lda, vectorizer, num_words=15)
-    plt.savefig('output/word_clouds_by_topic.png', dpi=300, bbox_inches='tight')
-    print("✅ Saved: word_clouds_by_topic.png")
-    
-    # 4. Topic distribution
-    fig4 = plot_topic_distribution(lda, doc_term_matrix)
-    plt.savefig('output/topic_distribution.png', dpi=300, bbox_inches='tight')
-    print("✅ Saved: topic_distribution.png")
+    plot_top_words_by_topic(lda, vectorizer, num_words=12)
+    plot_heatmap_improved(lda, doc_term_matrix)
+    plot_word_clouds_improved(lda, vectorizer, num_words=15)
+    plot_topic_distribution_improved(lda, doc_term_matrix)
     
     print("\n" + "="*60)
     print("🎉 All visualizations are ready!")
     print("="*60)
-    plt.show()
-   
-   
-    
-    
