@@ -139,3 +139,7 @@ if __name__ == "__main__":
     print("🎉 All visualizations are ready!")
     print("="*60)
     plt.show()
+   
+   
+    
+    
